@@ -51,19 +51,27 @@ def get_requires(mod_data, recommends=False, suggests=False):
     requires = {mod_name: {"reqs": {"configure": {}, "runtime": {}}}}
 
     for item in req_types_list:
-        for level in req_level:
-            if level in pre_reqs[item]:
-                stripped = strip_dbl_colons(pre_reqs[item][level])
-                requires[mod_name]["reqs"][item][level] = {gen_eopkg_name(k): v for (k, v) in stripped.items()}
+        if item in pre_reqs:
+            for level in req_level:
+                if level in pre_reqs[item]:
+                    stripped = strip_dbl_colons(pre_reqs[item][level])
+                    requires[mod_name]["reqs"][item][level] = {gen_eopkg_name(k): v for (k, v) in stripped.items()}
 
     return requires
+
+
+def gen_perl_mod_name(mod_data):
+    # May work. May not... wouldn't rely on this one too heavily
+    mod_name = mod_data["distribution"]
+    return "{}".format(str(mod_name).replace('-', '::'))
 
 
 def gen_eopkg_name(module_name):
     # Takes a Perl Module in the Perl::Module::Format and returns a compliant Solus Perl module package name
 
     prefix = 'perl-'
-    return "{prefix}{mod_name}".format(prefix=prefix, mod_name=strip_dbl_colons(module_name)).lower()
+    return "{prefix}{mod_name}".format(prefix=prefix,
+                                       mod_name=strip_dbl_colons(module_name)).lower()
 
 
 def _wrap_print(header, body):
@@ -81,7 +89,10 @@ def main(modules):
     for mod in modules:
         data = get_module_info(mod, base_url)
         requirements = get_requires(mod_data=data["metadata"], recommends=True)
-        _wrap_print(header="{} - Version {}".format(mod, data['version']), body=requirements[mod]["reqs"])
+
+        _wrap_print(header="{} - Version {}".format(gen_perl_mod_name(data), data['version']),
+                    body=requirements[mod]["reqs"]
+                    )
 
 
 if __name__ == '__main__':
